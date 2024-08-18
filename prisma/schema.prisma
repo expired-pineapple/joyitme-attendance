@@ -1,0 +1,135 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                   String         @id @unique @default(uuid())
+  employeeNumber       String         @unique
+  name                 String         @default("Default Name")
+  password             String
+  resetPasswordToken   String?
+  resetPasswordExpires DateTime?
+  isAdmin              Boolean        @default(false)
+  isManager            Boolean        @default(false)
+  employee             Employee?
+  location             UserLocation[]
+  isBanned             Boolean        @default(false)
+}
+
+model UserLocation {
+  id         String   @id @unique @default(uuid())
+  locationId String
+  location   Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Employee {
+  id                       String                     @id @unique @default(uuid())
+  projectedHour            Float                      @default(0)
+  qrCode                   String                     @unique
+  timestamps               CheckInOut[]
+  formula                  String                     @default("")
+  userId                   String                     @unique
+  user                     User                       @relation(fields: [userId], references: [id])
+  created_at               DateTime                   @default(now())
+  updated_at               DateTime                   @updatedAt
+  employeePayroll          EmployeePayroll[]
+  automatedEmployeePayroll AutomatedEmployeePayroll[]
+}
+
+model CheckInOut {
+  id             String    @id @unique @default(uuid())
+  employeeId     String
+  date           DateTime
+  check_in_time  DateTime
+  check_out_time DateTime?
+  employee       Employee  @relation(fields: [employeeId], references: [id])
+}
+
+model Location {
+  id                      String                     @id @unique @default(uuid())
+  image                   String?
+  name                    String
+  budget                  Float                      @default(0)
+  employees               UserLocation[]
+  payrollPeriods          PayrollLocation[]
+  automatedpayrollPeriods AutomatedPayrollLocation[]
+}
+
+model PayrollPeriod {
+  id        String            @id @unique @default(uuid())
+  startDate DateTime
+  endDate   DateTime
+  locations PayrollLocation[]
+}
+
+model PayrollLocation {
+  id         String            @id @unique @default(uuid())
+  payrollId  String
+  payroll    PayrollPeriod     @relation(fields: [payrollId], references: [id])
+  locationId String?
+  location   Location?         @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  budget     Float
+  employees  EmployeePayroll[]
+}
+
+model EmployeePayroll {
+  id               String          @id @unique @default(uuid())
+  employeeId       String
+  employee         Employee        @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  payrollId        String
+  payroll          PayrollLocation @relation(fields: [payrollId], references: [id])
+  confirmation     Boolean         @default(false)
+  earnings         Float           @default(0)
+  totalWorkedHours Float           @default(0)
+  remark           String?
+  confirmed_at     DateTime?
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}
+
+model AutomatedPayrollPeriod {
+  id        String                     @id @unique @default(uuid())
+  startDate DateTime
+  endDate   DateTime
+  locations AutomatedPayrollLocation[]
+}
+
+model AutomatedPayrollLocation {
+  id         String                     @id @unique @default(uuid())
+  payrollId  String
+  payroll    AutomatedPayrollPeriod     @relation(fields: [payrollId], references: [id])
+  locationId String?
+  location   Location?                  @relation(fields: [locationId], references: [id])
+  budget     Float
+  employees  AutomatedEmployeePayroll[]
+}
+
+model AutomatedEmployeePayroll {
+  id               String                   @id @unique @default(uuid())
+  employeeId       String
+  employee         Employee                 @relation(fields: [employeeId], references: [id])
+  payrollId        String
+  payroll          AutomatedPayrollLocation @relation(fields: [payrollId], references: [id])
+  confirmation     Boolean                  @default(false)
+  earnings         Float                    @default(0)
+  totalWorkedHours Float                    @default(0)
+  remark           String?
+  confirmed_at     DateTime?
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}
