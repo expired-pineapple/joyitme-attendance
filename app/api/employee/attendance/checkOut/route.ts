@@ -2,10 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import getCurrentUser from '@/app/actions/getCurrentUser';
 import { db } from "@/lib/db";
-import keys from "@/app/api/employee/attendance/checkOut/spreadsheet-keys.json";
 
-const { google } = require('googleapis');
-const sheets = google.sheets('v4');
 
 export async function POST(request: NextRequest) {
     try {
@@ -47,51 +44,16 @@ export async function POST(request: NextRequest) {
 
         // Update the ongoing check-in sessions
         const updatedSessions = await Promise.all(
-            ongoingCheckinSessions.map(async (session) => {
+            ongoingCheckinSessions.map(async (session: { id: any; check_in_time: { getTime: () => number; }; }) => {
                 const checkOut = await db.checkInOut.update({
                     where: { id: session.id },
                     data: { check_out_time: currentDate }
                 });
-
-                // Append check-in data to Google Sheets
-                const spreadsheetId = process.env.GOOGLE_SHEETS_SPREADSHEET_ID || "";
-                const range = "Sheet1!A:E";
+             
                 let duration = ''
                 const check_out_time_date = new Date(currentDate);
                 const timeDiff = check_out_time_date.getTime() - session.check_in_time.getTime();
                 duration = (timeDiff / (1000 * 60 * 60)).toFixed(2);
-                const values = [[employee.user.employeeNumber, session.date.toISOString(), session.check_in_time.toLocaleTimeString(), currentDate.toLocaleTimeString(), duration]];
-
-                try {
-                    const authClient = await google.auth.getClient({
-                        projectId: keys.project_id,
-                        credentials: {
-                            type: "service_account",
-                            private_key: keys.private_key,
-                            client_email: keys.client_email,
-                            client_id: keys.client_id,
-                            token_url: keys.token_uri,
-                            universe_domain: "googleapis.com",
-                        },
-                        scopes: [
-                            "https://www.googleapis.com/auth/spreadsheets",
-                        ],
-                    });
-                    const request = {
-                        spreadsheetId,
-                        range,
-                        valueInputOption: 'RAW',
-                        insertDataOption: 'INSERT_ROWS',
-                        resource: {
-                            values,
-                        },
-                        auth: authClient,
-                    };
-                    await sheets.spreadsheets.values.append(request);
-                } catch (error) {
-                    console.error(error);
-                    return NextResponse.json({ error: "Failed to append check-in data to Google Sheets" }, { status: 500 });
-                }
 
                 return checkOut;
             })

@@ -5,6 +5,7 @@ import { formatInTimeZone, format } from 'date-fns-tz';
 import { LuFileSpreadsheet } from "react-icons/lu";
 import exportToExcel from "@/lib/exportToExcel";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea"
 import {
   Card,
   CardDescription,
@@ -40,18 +41,22 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
+  DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { FiMapPin } from "react-icons/fi";
 import { Location } from "@/app/types";
+import { GoLog } from "react-icons/go";
+import { MoreHorizontal } from "lucide-react";
+import Link from "next/link";
+
 
 export default function Dashboard() {
   const [loading, setLoading] = useState(true);
@@ -70,12 +75,17 @@ export default function Dashboard() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [idLoading, setIdLoading] = useState(false);
   const [editValues, setEditValues] = useState({
+    date:"",
     check_in_time: "",
     check_out_time: null as string | null,
+    remark: null as string | null
   });
   const [location, setLocation] = useState<Location[]>([]);
   const [locationLoading, setlocationLoading] = useState(false);
   const [selectedLocations, setSelectedLocations] = useState([])
+  const [remark, setRemark] = useState("")
+  const [remarkDialog, setRemarkDialog] = useState(false)
+  const [remarkId, setRemarkId] = useState("")
 
   const excel_columns = [
     { header: "Employee Number", key: "employeeNumber", width: 30 },
@@ -207,8 +217,10 @@ export default function Dashboard() {
 
 const fetchAttendance = async (id: string) => {
   setEditValues({
+    date: "",
     check_in_time: "",
     check_out_time: null,
+    remark: null
   });
 
   try {
@@ -216,15 +228,19 @@ const fetchAttendance = async (id: string) => {
     const res = await axios.get(`/api/employee/attendance/${id}`);
     if (res.status === 200) {
       const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      
+      const date = res.data.date
       const check_in_time = formatInTimeZone(new Date(res.data.check_in_time), userTimeZone, 'HH:mm:ss');
       const check_out_time = res.data.check_out_time 
         ? formatInTimeZone(new Date(res.data.check_out_time), userTimeZone, 'HH:mm:ss')
         : null;
 
+      const fetchedRemark = res.data.remark
+
       setEditValues({
+        date,
         check_in_time,
         check_out_time,
+        remark:fetchedRemark
       });
     }
   } catch (e: any) {
@@ -256,9 +272,11 @@ const editAttendance = async () => {
       : null;
 
     const editData = {
+      date: editValues.date,
       check_in_time: check_in_date.toISOString().slice(11, 19),
       check_out_time: check_out_date ? check_out_date.toISOString().slice(11, 19) : null,
-      timezone: userTimeZone
+      timezone: userTimeZone,
+      remark: editValues.remark
     };
   
     const res = await axios.put(`/api/employee/attendance/${editId}`, editData);
@@ -279,6 +297,41 @@ const editAttendance = async () => {
   }
 };
 
+const setAttendanceRemark = async ()=>{
+  try {
+    toast({
+      description: (
+        <>
+          <div className="flex items-center justify-center">
+            <PiSpinner className="h-4 w-4 mr-2 animate-spin" />
+            <p>Loading</p>
+          </div>
+        </>
+      ),
+      className: "top-0 right-0 bg-blue-50 text-blue-900 border-blue-900",
+    });
+
+   
+    const res = await axios.put(`/api/employee/attendance/remark/${remarkId}`, {
+      remark:remark
+    });
+    fetchEmployeeData();
+    if (res.status === 200) {
+      toast({
+        description: res.data.message,
+        className: "top-0 right-0 bg-emerald-50 text-emerald-900 border-emerald-900",
+      });
+    }
+  } catch (e: any) {
+    toast({
+      description: "Something went wrong",
+      className: "top-0 right-0 bg-red-50 text-red-900 border-red-900",
+    });
+  } finally {
+    setIdLoading(false);
+  }
+
+}
   const handleLocationChange = (locationId: string) => {
     setSelectedLocations((prev: any) => {
       const newSelection = prev.includes(locationId)
@@ -305,18 +358,6 @@ const editAttendance = async () => {
         );
       },
       cell: ({ row }) => <div className="text-left">{row.getValue("employeeNumber")}</div>,
-    },
-    {
-      accessorKey: "employeeName",
-  
-      header: ({ column }) => {
-        return (
-          <div className="text-left">
-          Employee Name
-           </div>
-        );
-      },
-      cell: ({ row }) => <div className="text-left">{row.getValue("employeeName")}</div>,
     },
     {
       accessorKey: "locations",
@@ -348,7 +389,9 @@ const editAttendance = async () => {
           </Button>
         );
       },
-      cell: ({ row }) => <div className="text-left">{row.getValue("date")}</div>,
+      cell:  ({ row }) => {
+        return ( <div className="text-left"><span></span>{row.getValue("date")}</div>
+      )},
     },
     {
       accessorKey: "check_in_time",
@@ -372,9 +415,9 @@ const editAttendance = async () => {
       accessorKey: "check_out_time",
       header: () => <div className="text-left">Checkout Time</div>,
       cell: ({ row }) => {
-        return <span className="text-left font-medium">
+        return( <span className="text-left font-medium">
           
-          {row.getValue("check_out_time")}</span>;
+          {row.getValue("check_out_time")}</span>)
       },
     },
   
@@ -386,23 +429,64 @@ const editAttendance = async () => {
         return <span className="text-left font-medium">{row.getValue("duration")}</span>;
       },
     },
+      
+    {
+      accessorKey: "remark",
+      header: () => <div className="text-left">Remark</div>,
+      cell: ({ row }) => {
+  
+        return <span className="text-left font-medium">{row.getValue("remark")}</span>;
+      },
+    },
+    {
+      accessorKey: "edited",
+      header: () => <div className="text-left"></div>,
+      cell: ({ row }) => {
+        const edited = row.original.edited;
+        return (
+          <div className={edited ? "border border-red-500 px-2 py-1 mx-auto rounded-full bg-red-50/50 text-red-700 font-medium text-center text-xs" : "border border-emerald-500 px-2 py-1 mx-auto rounded-full bg-emerald-50/50 text-emerald-700 font-medium text-center text-xs"}>
+            {edited ? "Edited" : "Unedited"}
+          </div>
+        );
+      },
+    },
     {
       accessorKey: "action",
       header: () => <div className="text-left"></div>,
       cell: ({ row }) => {
+        if(isAdmin || isManager){
         return (
-        <Button
-          variant="ghost"
-          disabled={!isAdmin && !isManager}
-          onClick={()=>{
-            fetchAttendance(row.original.id)
-            setDialogOpen(true)
-            setEditId(row.original.id)
-          }}
-          >
-             <TbPencil className="h-4 w-4 text-sky-700" />
-          </Button>
-        )},
+          <>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-8 w-8 p-0">
+                <span className="sr-only">Open menu</span>
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+              <DropdownMenuItem onClick={()=>{
+                fetchAttendance(row.original.id)
+                setDialogOpen(true)
+                setEditId(row.original.id)
+              }}
+                >
+                Edit Attendance
+                
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                           onClick={()=>{
+                            setRemarkDialog(true)
+                            setRemarkId(row.original.id)
+                          }}>
+                    Add Attendance Remark
+                </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>  
+          </>
+                      
+        )}}
     },
   ];
   
@@ -438,7 +522,7 @@ const editAttendance = async () => {
                               ) : location.length === 0 ? (
                                 <DropdownMenuLabel>No location found</DropdownMenuLabel>
                               ) : (
-                                location.map((group) => (
+                                location?.map((group) => (
                                   <DropdownMenuCheckboxItem
                                     key={group.id}
                                     checked={
@@ -553,14 +637,66 @@ const editAttendance = async () => {
               <DataTable columns={columns} data={[...data]} search={"employeeNumber"} loading={loading} />
             
           </Card>
+          <AlertDialog open={remarkDialog} >
+            <AlertDialogContent className="w-[200rem]">
+              <AlertDialogHeader>
+                <AlertDialogTitle>Add Attenance Remark</AlertDialogTitle>
+              </AlertDialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid w-full gap-1.5">
+                  <Label htmlFor="remark" className="font-semibold">
+                    Remark:
+                  </Label>
+                  <Textarea 
+                    id="remark"
+                    value={remark}
+                    className="row-span-2 col-span-2"
+                    onChange={(e) => {
+                      setRemark( e.target.value);
+                    }}
+                    />
+                </div>
+              </div>
+              <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => setRemarkDialog(false)}>
+                  Cancel
+                </AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => {
+                    setRemarkDialog(false);
+                    setAttendanceRemark();
+                  }}
+                  className="bg-emerald-800 px-4 py-2 text-white transition hover:bg-emerald-600"
+                >
+                  Confirm
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
           <AlertDialog open={dialogOpen}>
-            <AlertDialogContent>
+            <AlertDialogContent className="w-[250rem]">
               <AlertDialogHeader>
                 <AlertDialogTitle>Edit Employee Attendance</AlertDialogTitle>
               </AlertDialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="check-in" className="text-right">
+              <div className="grid gap-7 py-4">
+                <div className="grid w-full gap-1.5">
+                  <Label htmlFor="date" className="font-semibold">
+                    Date
+                  </Label>
+                  <Input
+                    id="check-in"
+                    type="date"
+                    value={
+                      editValues?.date
+                        ? editValues.date
+                        : ""
+                    }
+                    className="col-span-3"
+                    onChange={(e) => {
+                      setEditValues({ ...editValues, date: e.target.value});
+                    }}
+                    />
+                  <Label htmlFor="check-in" className="font-semibold">
                     Check In Time
                   </Label>
                   <Input
@@ -579,9 +715,9 @@ const editAttendance = async () => {
 
                   />
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="check-out" className="text-right">
-                    Check Out Time
+                <div className="grid w-full gap-1.5 font-semibold">
+                  <Label htmlFor="check-out" className="font-semibold">
+                    Check Out Time:
                   </Label>
                   <Input
                     id="check-out"
@@ -598,6 +734,23 @@ const editAttendance = async () => {
                     className="col-span-3"
                     type="time"
                   />
+                </div>
+                <div className="grid w-full gap-1.5">
+                  <Label htmlFor="remark" className="font-semibold">
+                    Remark:
+                  </Label>
+                  <Textarea 
+                    id="remark"
+                    value={
+                      editValues?.remark
+                        ? editValues.remark
+                        : ""
+                    }
+                    className="row-span-2 col-span-2"
+                    onChange={(e) => {
+                      setEditValues({ ...editValues, remark: e.target.value});
+                    }}
+                    />
                 </div>
               </div>
               <AlertDialogFooter>

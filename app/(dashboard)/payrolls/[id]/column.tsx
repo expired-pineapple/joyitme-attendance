@@ -4,18 +4,6 @@ import { ColumnDef } from "@tanstack/react-table"
 import { Button } from "@/components/ui/button";
 import { Payroll } from "../../../types";
 
-
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { MoreHorizontal } from "lucide-react";
-
-
-
 export const columns: ColumnDef<Payroll>[] = [  
   {
     accessorKey: "employeeNumber",

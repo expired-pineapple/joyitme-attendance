@@ -534,7 +534,7 @@ export default function Dashboard() {
               <AlertDialogHeader>
                 <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  This action cannot be undone. This will permanently delete location data.
+                  This action cannot be undone. This will permanently delete selected payroll data.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>

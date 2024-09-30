@@ -492,7 +492,7 @@ const deleteEmployee = async () => {
                           onChange={(e) =>
                             setFormData({
                               ...formData,
-                              employeeNumber: e.target.value,
+                              employeeNumber: e.target.value.trim(),
                             })
                           }
                         />

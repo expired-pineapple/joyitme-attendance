@@ -8,7 +8,7 @@ export async function GET(request: NextRequest,  { params }: { params: { id: str
     try{
         const user= await getCurrentUser();
         if(!user) return NextResponse.json({error: "Unauthorized"}, {status: 401});
-        if(!user.isAdmin && !user.isManager) return NextResponse.json({error: "Unauthorized"}, {status: 401});
+        if(!user.isAdmin) return NextResponse.json({error: "Unauthorized"}, {status: 401});
 
         const { id } = params;
 
@@ -38,7 +38,7 @@ export async function GET(request: NextRequest,  { params }: { params: { id: str
   export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
     try {
         const user = await getCurrentUser();
-        if (!user || (!user.isAdmin && !user.isManager)) {
+        if (!user || (!user.isAdmin)) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
