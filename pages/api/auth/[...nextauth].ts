@@ -6,7 +6,6 @@ import { User } from "@prisma/client";
 
 import { db } from "@/lib/db";
 
-
 export const authOptions: AuthOptions = {
   adapter: PrismaAdapter(db),
   providers: [
@@ -17,44 +16,54 @@ export const authOptions: AuthOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-       
-        const user = await db.user.findUnique({
-          where: { employeeNumber: credentials?.employeeNumber as string },
-        });
-
-
-        if (!user) {
-          throw new Error("Invalid credentials");
+        if (!credentials?.employeeNumber || !credentials?.password) {
+          throw new Error("Missing credentials");
         }
-        if(user.isBanned) throw new Error("User is banned")
+
         try {
-          const isValid = await bcrypt.compare(
-            credentials?.password as string,
-            user?.password as string
-          );
+          let user;
+          try{
+              user= await db.user.findUnique({
+                where: { employeeNumber: credentials.employeeNumber },
+              });
+            }catch(error){
+                throw Error('Something went wrong')
+              }
+
+          if (!user) {
+            throw new Error("Invalid credentials");
+          }
+
+          if (user.isBanned) {
+            throw new Error("User is banned");
+          }
+
+          const isValid = await bcrypt.compare(credentials.password, user.password);
           if (!isValid) {
             throw new Error("Invalid credentials");
           }
-        } catch (error:any) {
-          throw new Error(error);
-        }
 
-        return user;
-      
-    }
-    })
+          return user;
+        } catch (error) {
+          if (error instanceof Error) {
+            throw new Error(error.message);
+          }
+          throw new Error("An unexpected error occurred");
+        }
+      },
+    }),
   ],
   pages: {
     signIn: "/login",
     error: "/login",
-    verifyRequest: '/verify-request'
+    verifyRequest: "/verify-request",
   },
   callbacks: {
     async session({ session, token }) {
-      if (session.user) {
+      if (session.user && token.sub) {
         // @ts-ignore
-        session.user.id = token.sub as string;
-        // @ts-ignore
+        session.user.id = token.sub;
+        //@ts-ignore
         session.user.employeeNumber = token.employeeNumber as string;
       }
       return session;
@@ -70,9 +79,6 @@ export const authOptions: AuthOptions = {
     strategy: "jwt",
   },
   secret: process.env.NEXTAUTH_SECRET,
-  // jwt: {
-  //   secret: process.env.AUTH_SECRET_KEY,
-  // },
   debug: process.env.NODE_ENV === "development",
 };
 

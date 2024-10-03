@@ -9,6 +9,7 @@ export interface Attendance {
   duration: string;
   hasCheckedInToday: boolean;
   hasCheckedOutToday: boolean;
+  edited: Boolean
 }
 
 

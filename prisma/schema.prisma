@@ -56,6 +56,8 @@ model CheckInOut {
   check_in_time  DateTime
   check_out_time DateTime?
   employee       Employee  @relation(fields: [employeeId], references: [id])
+  edited     Boolean         @default(false)
+  remark     String?
 }
 
 model Location {

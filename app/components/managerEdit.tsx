@@ -57,7 +57,7 @@ const ManagerEditForm: React.FC<Props> = ({ id, sheetOpen, onChange, onSuccess }
       const res = await axios.get(`/api/employee/${id}`);
       if (res.status === 200) {
         setEditformData(res.data);
-        setSelectedLocations(res.data.user.location.map((loc: { locationId: string }) => loc.locationId));
+        setSelectedLocations(res.data.user.location?.map((loc: { locationId: string }) => loc.locationId));
       } else if (res.status === 401) {
         window.location.href = "/login";
       }
@@ -93,7 +93,7 @@ const ManagerEditForm: React.FC<Props> = ({ id, sheetOpen, onChange, onSuccess }
           ...editformData,
           user: {
             ...editformData.user,
-            location: selectedLocations.map(locationId => ({ locationId })),
+            location: selectedLocations?.map(locationId => ({ locationId })),
           },
         });
         if (res.status === 200) {
@@ -212,7 +212,7 @@ const ManagerEditForm: React.FC<Props> = ({ id, sheetOpen, onChange, onSuccess }
                 ) : editLocation?.length === 0 ? (
                   <DropdownMenuLabel>No location found</DropdownMenuLabel>
                 ) : (
-                  editLocation.map((location) => (
+                  editLocation?.map((location) => (
                     <DropdownMenuCheckboxItem
                       key={location.id}
                       checked={selectedLocations.includes(location.id)}

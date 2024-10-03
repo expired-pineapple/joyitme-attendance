@@ -715,7 +715,7 @@ const setAttendanceRemark = async ()=>{
 
                   />
                 </div>
-                <div className="grid w-full gap-1.5 font-semibold">
+                <div className="grid w-full gap-1.5">
                   <Label htmlFor="check-out" className="font-semibold">
                     Check Out Time:
                   </Label>

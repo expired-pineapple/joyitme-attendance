@@ -10,7 +10,7 @@ import { LuFileSignature } from "react-icons/lu";
 import { RiAccountPinCircleLine } from "react-icons/ri";
 import { MdWaves } from "react-icons/md";
 import { CiLogout} from "react-icons/ci";
-import { usePathname, useRouter } from "next/navigation"
+import { usePathname   } from "next/navigation"
 import { BsClockHistory } from "react-icons/bs";
 import { signOut } from "next-auth/react";
 
@@ -23,7 +23,6 @@ interface SidebarProps {
 
 const SideBar: React.FC<SidebarProps> = ({admin, manager}) => {
   const r  = usePathname();
-  const router = useRouter();
   const isAttendance = r === "/"
   const isEmployee = r === "/employee"
   const isLocation = r === '/configs/location'
@@ -95,7 +94,7 @@ const SideBar: React.FC<SidebarProps> = ({admin, manager}) => {
           </Tooltip>
           </TooltipProvider>
           )}
-                              {(admin || manager ) && (
+                              {(admin ) && (
           <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -214,7 +213,7 @@ const SideBar: React.FC<SidebarProps> = ({admin, manager}) => {
                    <span>Location</span>
                 </Link>
                 )}
-                                             {(admin || manager) && (
+                                             {(admin) && (
                 <Link
                   href="/payrollPeriods"
                   className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"

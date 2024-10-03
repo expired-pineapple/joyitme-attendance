@@ -20,6 +20,8 @@
           check_in_time: true,
           check_out_time: true,
           date: true,
+          edited:true,
+          remark:true,
           employee: { 
             select: {
               user: { 
@@ -153,9 +155,12 @@
         check_out_time,
         employeeName: attendance.employee.user.name,
         duration,
-        locations: attendance.employee.user.location[0].location.name
+        locations: attendance.employee.user.location[0].location.name,
+        edited: attendance.edited,
+        remark: attendance.remark 
       };
     });
+
 
     return { attendanceWithEmployeeName, hasCheckInToday, hasCheckOutToday };
   }

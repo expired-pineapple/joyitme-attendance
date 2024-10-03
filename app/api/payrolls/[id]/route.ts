@@ -14,7 +14,7 @@ export async function GET(
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    if (!user.isAdmin && !user.isManager) {
+    if (!user.isAdmin) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
@@ -100,6 +100,7 @@ export async function GET(
           
           }
         )
+        
 
         responsewithLocation={
           startDate: new Date(payroll.startDate).toDateString(),
@@ -110,8 +111,51 @@ export async function GET(
 
         }
       }
+      const attendances = await db.checkInOut.findMany({
+        where: {
+          AND: [
+            {
+              OR: [
+                {
+                  check_in_time: {
+                    gte: new Date(payroll.startDate),
+                    lte: new Date(payroll.endDate)
+                  }
+                },
+                {
+                  check_out_time: {
+                    gte: new Date(payroll.startDate),
+                    lte: new Date(payroll.endDate)
+                  }
+                }
+              ]
+            },
+            {
+              NOT: {
+                OR: [
+                 {
+                  remark: ""
+                 },{
+                  remark: null
+                 }
+                ]
+              }
+            }
+          ]
+        },
+        include: {
+          employee: {
+            include: {
+              user: true
+            }
+          }
+        }
+      });
 
-      return NextResponse.json(responsewithLocation, { status: 200 });
+      return NextResponse.json({
+        payroll: responsewithLocation,
+        attendances: attendances
+      }, { status: 200 });
     } catch (error) {
       console.error(error);
       return NextResponse.json({ message: "Internal server error" }, { status: 500 });

@@ -50,12 +50,13 @@ export async function GET(request: NextRequest) {
               id:p.id,
               startDate: p.startDate,
               endDate:p.endDate,
-              location:p.locations[0].location?.name,
-              budget:p.locations[0].budget
+              location: p.locations.length >0 ? p.locations[0].location?.name : "",
+              budget:p.locations.length >0 ? p.locations[0].budget: "",
             }
           )
         }));
     }catch(error){
+      console.log(error)
         return NextResponse.json({error: "Something went wrong"}, {status: 500});
     }    
   }

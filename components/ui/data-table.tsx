@@ -91,6 +91,7 @@ export function DataTable<TData, TValue>({
           table.getColumn(`${search}`)?.setFilterValue(event.target.value)
         }
         className="w-full bg-transparent mb-4"
+        id="search"
       />
       <div className="rounded-md border">
         <Table>

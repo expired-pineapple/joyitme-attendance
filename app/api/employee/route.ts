@@ -44,7 +44,8 @@ export async function GET(request: NextRequest) {
                 }
               }
             }
-          }
+          },
+          
         }
       });
   
@@ -55,7 +56,10 @@ export async function GET(request: NextRequest) {
         location: employee.user.location[0]?.location.name || 'No location'
       }));
   
-      return NextResponse.json(formattedEmployees);
+      return NextResponse.json({
+        employee: formattedEmployees,
+        isAdmin: user.isAdmin
+      });
     } catch (error) {
       console.error("Error in GET function:", error);
       return NextResponse.json({ error: "Something went wrong" }, { status: 500 });
