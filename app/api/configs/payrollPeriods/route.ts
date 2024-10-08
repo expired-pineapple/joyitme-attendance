@@ -73,40 +73,45 @@ export async function POST(request: NextRequest) {
 
         const parsedStartDate = new Date(body.startDate);
         const parsedEndDate = new Date(body.endDate);
-    
 
-        const emp = await db.employee.findMany({
-          include:{
-            timestamps:true
-          }
-        })
-
-        const employees = await db.employee.findMany({
-            where: {
-              user:{
+        const attendances = await db.checkInOut.findMany({
+          where:{
+            date:  {
+              gte: new Date(parsedStartDate),
+              lte: new Date(parsedEndDate)
+            },
+            employee:{
+              user: {
                 location: {
-                  every:{
+                  every: {
                     locationId: body.locationId
                   }
                 },
                 isBanned: false
+              }
+            }
+          }
+        })
+
+        const employees = await db.employee.findMany({
+          where: {
+            user: {
+              location: {
+                every: {
+                  locationId: body.locationId
+                }
               },
-              timestamps: {
-                some: {
-                  check_in_time: {
-                    gte: parsedStartDate,
-                    lte: parsedEndDate,
-                  },
-                },
-              },
+              isBanned: false
             },
-            include: {
+           
+        },
+          include: {
             user: true,
             timestamps: true,
           },
         })
 
-        if(employees.length === 0){
+        if(attendances.length === 0){
           return NextResponse.json({message: "No recorded attendance in selected time range"}, {status: 400});
         }
 
@@ -133,34 +138,28 @@ export async function POST(request: NextRequest) {
       )
 
         for (const employee of employees) {
-          const checkInsAndOuts = employee.timestamps;
           let totalWorkedHours = 0;
-    
-          // Calculate total worked hours using a loop with early termination
-          for (let i = 0; i < checkInsAndOuts.length; i += 2) {
-            const checkInTime = checkInsAndOuts[i].check_in_time;
-            const checkOutTime = checkInsAndOuts[i]?.check_out_time 
+          for (let i = 0; i < attendances.length;) {
+
+            const checkInTime = attendances[i].check_in_time;
+            const checkOutTime = attendances[i]?.check_out_time 
             let duration = 0
             if(checkOutTime !== null){
               duration = checkOutTime.getTime() - checkInTime.getTime()
-    
             }
-    
-            // Check if there's a next check-in (avoid unnecessary calculations)
-            if (i + 2 < checkInsAndOuts.length) {
-              totalWorkedHours += duration / (1000 * 60 * 60); // Convert milliseconds to hours
-            } else {
-              // Last check-in without check-out, use current time
-              totalWorkedHours += duration / (1000 * 60 * 60);
-              break; // Early termination if last check-in
-            }
+
+            totalWorkedHours += duration / (1000 * 60 * 60);
+
+           i+=1
           }
-    
+
+
+          
           const { formula } = employee;
-          const earnings = calculateEarnings(formula, totalWorkedHours); // Use a separate function for formula evaluation (see below)
+          const earnings = calculateEarnings(formula, totalWorkedHours);
           const earnings_fixed = earnings;
           const totalWorkedHours_fixed = totalWorkedHours;
-          // Add payroll data to the table
+      
           await db.employeePayroll.create(
             {
                 data: {
