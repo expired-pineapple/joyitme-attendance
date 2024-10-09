@@ -92,7 +92,6 @@ export async function POST(request: NextRequest) {
             }
           }
         })
-
         const employees = await db.employee.findMany({
           where: {
             user: {

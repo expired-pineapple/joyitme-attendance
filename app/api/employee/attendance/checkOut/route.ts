@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import getCurrentUser from '@/app/actions/getCurrentUser';
 import { db } from "@/lib/db";
+import { calculateEarnings } from "@/lib/calculateEarnings";
 
 
 export async function POST(request: NextRequest) {
@@ -58,7 +59,90 @@ export async function POST(request: NextRequest) {
                 return checkOut;
             })
         );
+                
+        const payroll = await db.payrollPeriod.findFirst({
+            where: {
+                OR: [
+                    {
+                        startDate: { lte: currentDate },
+                        endDate: { gte: currentDate }
+                    }
+                ]
+            }
+        });
 
+        if(payroll){ 
+            const payrollLocation = await db.payrollLocation.findFirst({
+              
+                where:{
+                    payrollId:payroll.id
+                }
+            })
+
+         const refreshedEmployee = await db.employee.findUnique({
+            where: { id: employee.id },
+            include: {
+                user: true,
+                timestamps: true
+            }
+        });
+
+        if(refreshedEmployee && payrollLocation){
+        const employeePayroll = await db.employeePayroll.findFirst({
+            where: {
+                employeeId: employee.id,
+                payrollId: payrollLocation?.id
+            }
+
+        })
+      
+        const checkInsAndOuts = refreshedEmployee.timestamps;
+        let totalWorkedHours = 0;
+
+        // Calculate total worked hours using a loop with early termination
+        for (let i = 0; i < checkInsAndOuts.length; i += 2) {
+        const checkInTime = checkInsAndOuts[i].check_in_time;
+        const checkOutTime = checkInsAndOuts[i]?.check_out_time
+        let duration = 0
+
+        if(checkOutTime !== null){
+            duration = checkOutTime.getTime() - checkInTime.getTime()
+
+        }
+
+        totalWorkedHours += duration / (1000 * 60 * 60);
+        console.log(totalWorkedHours)
+        }
+
+        const { formula } = employee;
+        const earnings_fixed = calculateEarnings(formula, totalWorkedHours); ;
+        const totalWorkedHours_fixed = totalWorkedHours;
+        if(employeePayroll){
+            await db.employeePayroll.update({
+                where:{
+                    id: employeePayroll?.id
+                },
+                data:{
+                    earnings: earnings_fixed,
+                    totalWorkedHours: totalWorkedHours_fixed
+                }
+            })
+        }
+        else{
+            await db.employeePayroll.create(
+                {
+                    data: {
+                        employeeId: employee.id,
+                        payrollId: payrollLocation?.id,
+                        earnings: earnings_fixed,
+                        totalWorkedHours: totalWorkedHours_fixed
+                    }
+                }
+            )
+        }
+        }
+        console.log("______________Saved Data_____________")
+}
         return NextResponse.json({ message: "Check-out successful", updatedSessions }, { status: 200 });
     } catch (error) {
         console.error(error);

@@ -94,7 +94,6 @@ export default function Dashboard() {
     try {
       setFetchLoading(true);
       const res = await axios.get(`/api/configs/payrollPeriods`);
-      console.log(res.data)
       if (res.status === 200) {
         setData(res.data);
         setFetchLoading(false);
@@ -338,13 +337,12 @@ export default function Dashboard() {
       const response = await axios.get(`/api/configs/payrollPeriods/${id}`)
       setId(id)
       if(response.status == 200){
-        console.log(response)
       setFormData({
         ...response.data
       })} 
     }
     catch(e){
-      console.log(e)
+    
     }
   }
 

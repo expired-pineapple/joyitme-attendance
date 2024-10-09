@@ -52,7 +52,6 @@ export async function GET(request: NextRequest,  { params }: { params: { id: str
         const { id } = params;
 
         
-        console.log({id}, "PARAMS")
         const employees = await db.employee.findMany({
             where: {
                 user: {

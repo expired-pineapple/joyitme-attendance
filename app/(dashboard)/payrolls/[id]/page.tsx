@@ -49,7 +49,6 @@ const fetchPayrollData = async () => {
   try {
     const res = await axios.get(`/api/payrolls/${routeParam?.id}`);
     if (res.status === 200) {
-      console.log(res.data)
       setSuccess(true);
       setData(res.data.payroll.employees);
       setDescription({
@@ -86,7 +85,7 @@ const excel_columns = [
 ];
 
 const exportExcel = () => {
-  exportToExcel(data, excel_columns, "Employee Report");
+  exportToExcel(data, excel_columns, "Payroll Report");
 };
 
 useEffect(() => { 
